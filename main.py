@@ -2,6 +2,7 @@ from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import Updater, CommandHandler, CallbackContext, ConversationHandler, MessageHandler, Filters, CallbackQueryHandler
 import logging
 from token_file import token
+import re
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO
@@ -41,16 +42,25 @@ def user_age_question(update: Update, _: CallbackContext) -> int:
 
 
 def user_age_answer(update: Update, _: CallbackContext) -> int:
-    age = int(update.message.text)
-    update.message.reply_text('Введи свой рост')
-    return HEIGHT_ANSWER
+    if re.match(r"^[0-9]+$", update.message.text):
+        age = int(update.message.text)
+        update.message.reply_text('Введи свой рост')
+        return HEIGHT_ANSWER
+    else:
+        update.message.reply_text('Вы ввели неправильный возраст')
+        return AGE_ANSWER
 
 
 def user_height(update: Update, _: CallbackContext) -> int:
-    height = int(update.message.text)
-    result = 50 + 0.75*(height - 150) + (age - 20)/4
-    update.message.reply_text(f'Ваш идеальный вес: {result}')
-    return ConversationHandler.END
+    if re.match(r'^[0-9]+$', update.message.text):
+        height = int(update.message.text)
+        result = 50 + 0.75*(height - 150) + (age - 20)/4
+        update.message.reply_text(f'Ваш идеальный вес: {result}')
+        return ConversationHandler.END
+    else:
+        update.message.reply_text('Вы ввели неправильный рост')
+        return HEIGHT_ANSWER
+
 
 
 def main():
@@ -61,8 +71,8 @@ def main():
         entry_points=[CommandHandler('start', start)],
         states={
             AGE_QUESTION: [CallbackQueryHandler(user_age_question)],
-            AGE_ANSWER: [MessageHandler(Filters.regex('^[0-9]+$'), user_age_answer)],
-            HEIGHT_ANSWER: [MessageHandler(Filters.regex('^[0-9]+$'), user_height)],
+            AGE_ANSWER: [MessageHandler(Filters.text, user_age_answer)],
+            HEIGHT_ANSWER: [MessageHandler(Filters.text, user_height)],
         },
         fallbacks=[CommandHandler('cancel', cancel)],
     )
